@@ -1,0 +1,111 @@
+# IDEs/editors configuration directories
+**/.vscode/
+**/.idea/
+**/.clion/
+**/.pycharm/
+**/.atom/
+qtcreator/
+**/qtcreator/
+
+# Local configuration files
+CMakeLists.txt.user
+Makefile.user
+*.cflags
+*.config
+*.creator
+*.creator.user
+*.cxxflags
+*.files
+*.includes
+**/.cproject
+**/.project
+
+# File manager configuration files
+.directory
+
+# Temporary/backup files
+*~
+*#
+*.swp
+
+# MacOS self-generated files
+.DS_Store
+.DS_Store?
+*.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Code analysis/compiledb configuration files
+compile_flags.txt
+compile_commands.json
+
+# Clang Formatter/Completer
+.clang-format
+/.clang_complete
+
+# Special files and folders
+gitignored-*
+**/gitignored-*/
+
+# Other local/temporary files
+/*build*
+*build*
+googletest-release*
+packagecache*
+/code-gallery
+
+# Local generated graphics
+*.vtu
+*.pvtu
+*.vtk
+*.gnuplot
+*.visit
+
+
+### C++/Fortran ###
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.x
+a.out
+
+
+### Python ###
+# Precompiled headers
+*.pyc
+
+# VirtualEnv configuration files
+.venv
+pip-selfcheck.json
+
+# Project-specific ignores
+CMakeLists.txt
+autowipe.sh
