@@ -19,3 +19,37 @@
  *                                               (M. Fowlers)                  *
  *                                                                             *
  * ─────────────────────────────────────────────────────────────────────────── */
+
+
+#include <iostream>
+#include <string>
+#include <utilityfx.hpp>
+#include "triparticle.hpp"
+
+
+int main()
+{
+//    constexpr int wrktot{105};
+//    constexpr int wrknum{5};
+//
+//    std::cout << "TOTAL: " << wrktot << "\n"
+//              << "Workers: " << wrknum << "\n"
+//              << "\n\n\n";
+//
+//    for (auto i{0}; i < wrknum; ++i)
+//    {
+//        std::cout << "Worker [ " << i << " ] " << workslice<decltype(i)>(wrktot, wrknum, i).v1 << " -> "
+//                  << workslice<decltype(i)>(wrktot, wrknum, i).v2 << "\n";
+//    }
+//
+//    std::cout << std::endl;
+
+//    TriVec pippo(1,1,1);
+//    std::cout << mod(pippo);
+
+
+
+
+
+    return 0;
+}

@@ -42,12 +42,17 @@
 /******************************************************************************
  ******************************************************************************/
 
+/*
+ * `constexpr` is the way to go: less impact on memory, same optimizations as `const`.
+ * The matter is tricky: just don't use `const`. Don't try to be "smarter" either!
+ */
+
 /* Pi */
-real_t pi{static_cast<real_t>(M_PI)};  // Fix precision once; use everywhere!
+constexpr real_t pi{static_cast<real_t>(M_PI)};  // Fix precision once; use everywhere!
 
 /* 2Pi */
-real_t twopi{static_cast<real_t>(2 * M_PI)};  // Useful if the precision of
-                                              //  real_t is less than M_PI
+constexpr real_t twopi{static_cast<real_t>(2 * M_PI)};  // Useful if the precision of
+                                                        // real_t is less than M_PI
 
 /* Newtonian Gravitational constant */
-real_t Ggrav{static_cast<real_t>(6.67430e-11)};  // m^3 kg^-1 s^-2
+constexpr real_t Ggrav{static_cast<real_t>(6.67430e-11)};  // m^3 kg^-1 s^-2

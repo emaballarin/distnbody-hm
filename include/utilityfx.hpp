@@ -28,18 +28,71 @@
 
 #include "precision.hpp"  // Handling of real numbers
 
+#include <cassert>        // Re-evaluate if needed when C++20 Concepts will be usable
+
 
 /******************************************************************************
  ******************************************************************************/
 
 /* Eye-candy to avoid many static_casts in simple computations with booleans */
 template<typename integer>
-inline integer oneif(bool);
+inline integer oneif(const bool& condition)
+{
+    return static_cast<integer>(condition);
+}
 
 /* Templated implementation of Kronecker's Delta */
 template<typename candidate, typename rettype>
-inline rettype kdelta(candidate, candidate);
+inline rettype kdelta(const candidate& lhs, const candidate& rhs)
+{
+    return static_cast<rettype>(oneif<int>(lhs == rhs));
+}
 
 /* Loop over a modular arithmetic (loop over rings) */
 template<typename integer>
-inline integer ringloop(integer, integer);
+inline integer ringloop(const integer& candidate, const integer& base)
+{
+    /* While waiting for C++20 Concepts... */
+    assert(base > 0);  // It will work in Z\0; We just don't do that here ;)
+    // assert(base != 0)    // Will it ever be needed...
+
+    const integer remainder{candidate % base};
+    return (remainder < 0) ? (base + remainder) : remainder;
+}
+
+/* Integer two-ple (integer struct for two values) */
+template<typename integer>
+struct IntegerTwople
+{
+    integer v1;
+    integer v2;
+};
+
+/* Start-Stop partitioner (workload slicer) */
+template<typename integer>
+inline IntegerTwople<integer> workslice(const integer& workload, const integer& slices, const integer& worker)
+{
+    /* While waiting for C++20 Concepts... */
+    assert(workload >= 0);    // Cannot share a "negative workload"
+    assert(slices > 0);       // Cannot divide by zero workers; Cannot have a negative number of workers
+    assert(worker >= 0);      // A consequence of the above
+    assert(worker < slices);  // A consequence of the above
+
+    /*
+     * We adopt here the 'minimal unbalance criterion' in order to assign to
+     * each worker the right amount-of-work to be performed.
+     * Correct use in for loops is: [start, stop)
+     */
+
+    const integer slicefloor{static_cast<integer>(workload / slices)};
+    const integer remainder{workload - (slices * slicefloor)};
+    const bool OneMoreNeeded{worker < remainder};
+
+    const integer slicelen{slicefloor + oneif<integer>(OneMoreNeeded)};
+
+    const IntegerTwople<integer> ToBeRet{worker * slicelen + remainder * oneif<integer>(!OneMoreNeeded), ToBeRet.v1 + slicelen};
+    //ToBeRet.v1 = worker * slicelen + remainder * oneif<integer>(!OneMoreNeeded);
+    //ToBeRet.v2 = ToBeRet.v1 + slicelen;
+
+    return ToBeRet;
+}
