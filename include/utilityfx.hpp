@@ -72,12 +72,19 @@ inline real_t rangeloop(const real_t& candidate, const real_t& base)
     return (remainder < 0) ? (base + remainder) : remainder;
 }
 
+/* Real two-ple (integer struct for two values) */
+struct RealTwople
+{
+    real_t start;
+    real_t stop;
+};
+
 /* Integer two-ple (integer struct for two values) */
 template<typename integer>
 struct IntegerTwople
 {
-    integer v1;
-    integer v2;
+    integer start;
+    integer stop;
 };
 
 /* Start-Stop partitioner (workload slicer) */
@@ -102,9 +109,8 @@ inline IntegerTwople<integer> workslice(const integer& workload, const integer& 
 
     const integer slicelen{slicefloor + oneif<integer>(OneMoreNeeded)};
 
-    const IntegerTwople<integer> ToBeRet{worker * slicelen + remainder * oneif<integer>(!OneMoreNeeded), ToBeRet.v1 + slicelen};
-    //ToBeRet.v1 = worker * slicelen + remainder * oneif<integer>(!OneMoreNeeded);
-    //ToBeRet.v2 = ToBeRet.v1 + slicelen;
+    IntegerTwople<integer> ToBeRet{worker * slicelen + remainder * oneif<integer>(!OneMoreNeeded), 0};
+    ToBeRet.stop = ToBeRet.start + slicelen;
 
     return ToBeRet;
 }
