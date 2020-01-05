@@ -29,6 +29,7 @@
 #include "precision.hpp"  // Handling of real numbers
 
 #include <cassert>        // Re-evaluate if needed when C++20 Concepts will be usable
+#include <cmath>          // Abs
 
 
 /******************************************************************************
@@ -57,6 +58,17 @@ inline integer ringloop(const integer& candidate, const integer& base)
     // assert(base != 0)    // Will it ever be needed...
 
     const integer remainder{candidate % base};
+    return (remainder < 0) ? (base + remainder) : remainder;
+}
+
+/* Loop over a range (loop over ranges) */
+template<typename integer>
+inline real_t rangeloop(const real_t& candidate, const real_t& base)
+{
+    /* While waiting for C++20 Concepts... */
+    assert(base > 0);
+
+    const real_t remainder{candidate - base*static_cast<integer>(candidate/base)};
     return (remainder < 0) ? (base + remainder) : remainder;
 }
 

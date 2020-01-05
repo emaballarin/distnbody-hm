@@ -37,13 +37,14 @@
 
 class TriVec {
 
+    /* Here we want to be as intuitive as possible */
     public:
 
-    inline TriVec(real_t _x, real_t _y, real_t _z) : x(_x), y(_y), z(_z)
+    inline TriVec(real_t _x, real_t _y, real_t _z) : storagearray{_x, _y, _z}
     {
     }
 
-    inline TriVec() : x{}, y{}, z{}
+    inline TriVec() : storagearray{}
     {
     }
 
@@ -55,35 +56,35 @@ class TriVec {
 
     inline TriVec& operator+=(const TriVec& rhs)
     {
-        x += rhs.x;
-        y += rhs.y;
-        z += rhs.z;
+        storagearray[0] += rhs.storagearray[0];
+        storagearray[1] += rhs.storagearray[1];
+        storagearray[2] += rhs.storagearray[2];
         return *this;
     }
 
     inline TriVec& operator-=(const TriVec& rhs)
     {
-        x -= rhs.x;
-        y -= rhs.y;
-        z -= rhs.z;
+        storagearray[0] -= rhs.storagearray[0];
+        storagearray[1] -= rhs.storagearray[1];
+        storagearray[2] -= rhs.storagearray[2];
         return *this;
     }
 
     template<typename Scalar>
     inline TriVec& operator*=(const Scalar& scalar)
     {
-        x * scalar;
-        y * scalar;
-        z * scalar;
+        storagearray[0] * scalar;
+        storagearray[1] * scalar;
+        storagearray[2] * scalar;
         return *this;
     }
 
     template<typename Scalar>
     inline TriVec& operator/=(const Scalar& scalar)
     {
-        x * (static_cast<real_t>(1) / scalar);
-        y * (static_cast<real_t>(1) / scalar);
-        z * (static_cast<real_t>(1) / scalar);
+        storagearray[0] * (static_cast<real_t>(1) / scalar);
+        storagearray[1] * (static_cast<real_t>(1) / scalar);
+        storagearray[2] * (static_cast<real_t>(1) / scalar);
         return *this;
     }
 
@@ -102,9 +103,9 @@ class TriVec {
         assert(boxy >= 0);
         assert(boxz >= 0);
 
-        x = rangeloop<long int>(x, boxx);
-        y = rangeloop<long int>(y, boxy);
-        z = rangeloop<long int>(z, boxz);
+        storagearray[0] = rangeloop<long int>(storagearray[0], boxx);
+        storagearray[1] = rangeloop<long int>(storagearray[1], boxy);
+        storagearray[2] = rangeloop<long int>(storagearray[2], boxz);
     }
 
     // Impose CUBIC box boundary conditions, in-place
@@ -112,15 +113,42 @@ class TriVec {
     {
         assert(boxside >= 0);
 
-        x = rangeloop<long int>(x, boxside);
-        y = rangeloop<long int>(y, boxside);
-        z = rangeloop<long int>(z, boxside);
+        storagearray[0] = rangeloop<long int>(storagearray[0], boxside);
+        storagearray[1] = rangeloop<long int>(storagearray[1], boxside);
+        storagearray[2] = rangeloop<long int>(storagearray[2], boxside);
     }
 
-    real_t x;
-    real_t y;
-    real_t z;
 
+    real_t& x{storagearray[0]};
+    real_t& y{storagearray[1]};
+    real_t& z{storagearray[2]};
+
+//   /*******************
+//    * C'TORS | ASS'Ts *
+//    *******************/
+//
+//   // Copy c'tor
+//    TriVec(const TriVec& assigned)
+//    {
+//        storagearray = new(real_t[3]);
+//        x = assigned.x;
+//        y = assigned.y;
+//        z = assigned.z;
+//    }
+//
+//    // Copy ass't
+//    TriVec& operator=(TriVec assigned)
+//    {
+//        storagearray[0] = assigned.storagearray[0];
+//        storagearray[1] = assigned.storagearray[1];
+//        storagearray[2] = assigned.storagearray[2];
+//        return *this;
+//    }
+
+
+    private:
+    /* But we also want to allow easy vectorization by the compiler */
+    real_t storagearray[3];
 };
 
 

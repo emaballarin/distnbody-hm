@@ -31,7 +31,7 @@
 #include "precision.hpp"  // Handling of real numbers
 #include "utilityfx.hpp"  // Utility functions
 #include "trivector.hpp"  // 3D vectors
-
+#include "physics.hpp"    // Physical evolution
 
 /******************************************************************************
  ******************************************************************************/
@@ -45,7 +45,11 @@ class TriPart
     * CTORS *
     *********/
 
-    inline TriPart(real_t _m) : position{}, velocity{}, energy{}, mass(_m)
+    inline TriPart() : position{}, velocity{}, energy{}, mass{}
+    {
+    }
+
+    inline explicit TriPart(real_t _m) : position{}, velocity{}, energy{}, mass(_m)
     {
         assert(_m > 0); // Mass must be positive
     }
@@ -66,52 +70,52 @@ class TriPart
      * GETTERS *
      ***********/
 
-    inline TriVec pos()
+    inline TriVec pos() const
     {
         return position;
     }
 
-    inline real_t x()
+    inline real_t x() const
     {
         return position.x;
     }
 
-    inline real_t y()
+    inline real_t y() const
     {
         return position.y;
     }
 
-    inline real_t z()
+    inline real_t z() const
     {
         return position.z;
     }
 
-    inline TriVec vel()
+    inline TriVec vel() const
     {
         return velocity;
     }
 
-    inline real_t vx()
+    inline real_t vx() const
     {
         return velocity.x;
     }
 
-    inline real_t vy()
+    inline real_t vy() const
     {
         return velocity.y;
     }
 
-    inline real_t vz()
+    inline real_t vz() const
     {
         return velocity.z;
     }
 
-    inline real_t E()
+    inline real_t E() const
     {
         return energy;
     }
 
-    inline real_t m()
+    inline real_t m() const
     {
         return mass;
     }
@@ -195,18 +199,68 @@ class TriPart
         energy = _E;
     }
 
+    inline void m(real_t _mass)
+    {
+        assert(_mass >= 0);
+        mass = _mass;
+    }
+
    /**************
     * MEMBER FXS *
     **************/
 
-    inline real_t Ekin()
+    inline real_t Ekin() const
    {
         return (mass*dot(velocity, velocity))/2;
+   }
+
+   // Impose box boundary conditions for position, in-place
+   inline void boxBC(real_t boxx, real_t boxy, real_t boxz)
+   {
+       assert(boxx >= 0);
+       assert(boxy >= 0);
+       assert(boxz >= 0);
+
+       position.x = rangeloop<long int>(position.x, boxx);
+       position.y = rangeloop<long int>(position.y, boxy);
+       position.z = rangeloop<long int>(position.z, boxz);
+   }
+
+   // Impose CUBIC box boundary conditions for position, in-place
+   inline void boxBC_cubic(real_t boxside)
+   {
+       assert(boxside >= 0);
+
+       position.x = rangeloop<long int>(position.x, boxside);
+       position.y = rangeloop<long int>(position.y, boxside);
+       position.z = rangeloop<long int>(position.z, boxside);
+   }
+
+   /* Physical evolutors */
+
+   inline void stepForce(TriVec _force, real_t _timestep)
+   {
+       TriVec _newvel = NewVel(velocity, accel_from_Fm(_force, mass), _timestep);
+       velocity.x = _newvel.x;
+       velocity.y = _newvel.y;
+       velocity.z = _newvel.z;
+
+       TriVec _newpos = NewPos(position, _newvel, _timestep);
+       position.x = _newpos.x;
+       position.y = _newpos.y;
+       position.z = _newpos.z;
+   }
+
+   inline void stepForce_CBBC(TriVec _force, real_t _timestep, real_t _boxside)
+   {
+       this->stepForce(_force, _timestep);
+       this->boxBC_cubic(_boxside);
    }
 
     private:
     TriVec position;
     TriVec velocity;
     real_t energy;
-    const real_t mass;
+    real_t mass;
+    //const real_t mass;
 };

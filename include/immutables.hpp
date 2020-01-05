@@ -55,4 +55,5 @@ constexpr real_t twopi{static_cast<real_t>(2 * M_PI)};  // Useful if the precisi
                                                         // real_t is less than M_PI
 
 /* Newtonian Gravitational constant */
-constexpr real_t Ggrav{static_cast<real_t>(6.67430e-11)};  // m^3 kg^-1 s^-2
+constexpr real_t PhysicalGgrav{static_cast<real_t>(6.67430e-11)};  // m^3 kg^-1 s^-2
+constexpr real_t FakeGgrav{static_cast<real_t>(10e-6)};  // m^3 kg^-1 s^-2
