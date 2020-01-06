@@ -110,3 +110,10 @@ inline TriVec Fgrav_on1_from2(real_t _m1, real_t _m2, TriVec _pos1, TriVec _pos2
     TriVec _dist(_pos1 - _pos2);
     return (Ggrav*_m1*_m2)*_dist/(pow(mod(_dist), 3));
 }
+
+inline real_t Egrav_of1_from2(real_t _m1, real_t _m2, TriVec _pos1, TriVec _pos2)
+{
+    assert((_pos1.x != _pos2.x) || (_pos1.y != _pos2.y) || (_pos1.z != _pos2.z));
+    TriVec _dist(_pos1 - _pos2);
+    return (Ggrav * _m1 * _m2) / mod(_dist);
+}
