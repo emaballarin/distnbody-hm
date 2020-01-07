@@ -26,8 +26,8 @@
  * INCLUDES *
  ************/
 
-#include <cmath>           // sqrt
-#include <iostream>        // Overloading of `<<`
+#include <cmath>          // sqrt
+#include <iostream>       // Overloading of `<<`
 #include "precision.hpp"  // Handling of real numbers
 #include "utilityfx.hpp"  // Utility functions
 

@@ -27,7 +27,7 @@
  * INCLUDES *
  ************/
 
-#include <cassert>
+#include <cassert>        // Diagnostics
 #include "precision.hpp"  // Handling of real numbers
 #include "utilityfx.hpp"  // Utility functions
 #include "trivector.hpp"  // 3D vectors
@@ -35,6 +35,8 @@
 
 /******************************************************************************
  ******************************************************************************/
+
+// All warnings related to [[nodiscard]] are acceptable... (C++17 feature)
 
 
 class TriPart
@@ -195,7 +197,7 @@ class TriPart
 
     inline void E(real_t _E)
     {
-        assert(_E >= 0);
+        //assert(_E >= 0);
         energy = _E;
     }
 

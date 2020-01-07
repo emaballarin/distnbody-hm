@@ -39,7 +39,6 @@ typedef float real_t;
 typedef double real_t;
 #elif defined(REALLONG)
 typedef long double real_t;
-
 // ... or just rely on a sensible default.
 #else
 typedef realdefault real_t;

@@ -28,7 +28,6 @@
  ************/
 
 #include "precision.hpp"  // Handling of real numbers
-
 #include <cmath>  // M_PI
 
 

@@ -27,9 +27,8 @@
  ************/
 
 #include "precision.hpp"  // Handling of real numbers
-
-#include <cassert>        // Re-evaluate if needed when C++20 Concepts will be usable
-#include <cmath>          // Abs
+#include <cassert>        // Diagnostics
+#include <cmath>          // Absolute value
 
 
 /******************************************************************************
