@@ -32,35 +32,39 @@
  * GLOBAL INCLUDES *
  *******************/
 
-#include <algorithm>
-#include <bits/stdc++.h>
-#include <cassert>
-#include <iostream>
-#include <mpi.h>
-#include <vector>
+#include <algorithm>  // STL algorithms on iterables (arrays, vectors)
+#include <mpi.h>      // MPI parallelism
+//#include <omp.h>        // OpenMP parallelism
+#include <fcntl.h>      // File manipulations (POSIX)
+#include <string>       // STL strings for filenames
+#include <sys/stat.h>   // File manipulations (POSIX)
+#include <sys/types.h>  // File manipulations (POSIX)
+#include <unistd.h>     // File manipulations (POSIX)
+#include <vector>       // STL Vectors
 
 
 /******************
  * LOCAL INCLUDES *
  ******************/
 
-#include "immutables.hpp"
-#include "physics.hpp"
-#include "precision.hpp"
-#include "triparticle.hpp"
-#include "trivector.hpp"
-#include "utilityfx.hpp"
+#include "immutables.hpp"   // Mathematical constants
+#include "physics.hpp"      // Physical evolution
+#include "precision.hpp"    // Handling of real numbers
+#include "triparticle.hpp"  // Objects that represent material bodies
+#include "trivector.hpp"    // Objects that represent 3D vectors
+#include "utilityfx.hpp"    // Utility functions
 
 
 /***********
  * DEFINES *
  ***********/
+#define _GNU_SOURCE                 // Explicitly enable GNU extensions
+#define ull unsigned long long int  // A shorthand
+#define SEED 35791246               // Seed for number generator
 #define li long int
 #define lli long long int
 #define ui unsigned int
 #define ul unsigned long int
-#define ull unsigned long long int
-#define SEED 35791246  // Seed for number generator
 
 
 /******************************************************************************
@@ -86,6 +90,7 @@ int main(int argc, char* argv[])
     /* Define global, problem-specific constants */
     constexpr real_t GlobalMass = 100;
     constexpr ull Nparticles = 100;  // Change this if required!
+    constexpr bool write_a_checkpoint{true};
 
     /* Compute global, problem-specific constants */
     constexpr real_t singlemass = GlobalMass / Nparticles;
@@ -133,7 +138,7 @@ int main(int argc, char* argv[])
     auto genZpos = new real_t[particles_to_gen];
     auto genZvel = new real_t[particles_to_gen];
 
-    for (ull i{0}; i < particles_to_gen; ++i)
+    for (ull i = 0; i < particles_to_gen; ++i)
     {
         genXpos[i] = drand48();  // Already in the [0, 1) range!
         genYpos[i] = drand48();  // Already in the [0, 1) range!
@@ -144,7 +149,86 @@ int main(int argc, char* argv[])
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    // PUT HERE THE IC WRITER //
+    /* Write the IC to files (one per node; no more complex IO is needed) */
+
+    // Ordinary IO management
+    std::string myFileName = std::to_string(procId);   // We will call files with the (unique) procId
+    myFileName.append("_IC");                          // Better tag this, as the following will be different
+    int myFileId = open(myFileName.c_str(),            // DO NOT USE NON-CONST METHODS ON myFileName FROM NOW ON!
+                        O_WRONLY | O_CREAT | O_TRUNC,  // O_TRUNC -> O_APPEND if opening again
+                        0644);                         // Change mode if needed by whatever reason
+
+    /* Prepare & Dump data */
+
+    // Precision of floats -> sizeof(<whatever has type real_t>)
+    real_t writethis_realt{};
+    int writethis = static_cast<int>(sizeof(writethis_realt));
+    write(myFileId, &writethis, sizeof(writethis));
+
+    // Particles in the file
+    writethis = static_cast<int>(particles_to_gen);  // Change this when dumping during evolution
+    write(myFileId, &writethis, sizeof(writethis));
+
+    // The total number of files
+    writethis = static_cast<int>(P);
+    write(myFileId, &writethis, sizeof(writethis));
+
+    // Time
+    double writethis_double = 0.0;  // Change this when dumping during evolution
+    write(myFileId, &writethis_double, sizeof(writethis_double));
+
+    // Positions and velocities + Energy
+
+    // Ooops, we need energies for that (kinetic only, fortunately!)
+    auto Ekin_forIC = new real_t[particles_to_gen];
+
+    for (ull particle_being_written{0}; particle_being_written < particles_to_gen; ++particle_being_written)
+    {
+        Ekin_forIC[particle_being_written] = singlemass
+                                             * (genXvel[particle_being_written] * genXvel[particle_being_written]
+                                                + genYvel[particle_being_written] * genYvel[particle_being_written]
+                                                + genZvel[particle_being_written] * genZvel[particle_being_written])
+                                             / 2.0;
+    }
+
+
+    // Rework this when dumping during evolution
+    for (ull particle_being_written{0}; particle_being_written < particles_to_gen; ++particle_being_written)
+    {
+        // X
+        writethis_realt = genXpos[particle_being_written];
+        write(myFileId, &writethis_realt, sizeof(writethis_double));
+
+        // Y
+        writethis_realt = genYpos[particle_being_written];
+        write(myFileId, &writethis_realt, sizeof(writethis_double));
+
+        // Z
+        writethis_realt = genYpos[particle_being_written];
+        write(myFileId, &writethis_realt, sizeof(writethis_double));
+
+        // vX
+        writethis_realt = genXvel[particle_being_written];
+        write(myFileId, &writethis_realt, sizeof(writethis_double));
+
+        // vY
+        writethis_realt = genYvel[particle_being_written];
+        write(myFileId, &writethis_realt, sizeof(writethis_double));
+        // vX
+        writethis_realt = genZvel[particle_being_written];
+        write(myFileId, &writethis_realt, sizeof(writethis_double));
+
+        // Energies (kin)
+        writethis_realt = Ekin_forIC[particle_being_written];
+        write(myFileId, &writethis_realt, sizeof(writethis_double));
+    }
+
+
+    // Close what we opened
+    close(myFileId);
+
+    // Clean up
+    delete[] Ekin_forIC;
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -188,7 +272,8 @@ int main(int argc, char* argv[])
     // We just need to know the amount of particles that given node has generated
 
     ull generated_by_node[P];  // Requires C >= 99
-    for (int i{0}; i < P; ++i)
+
+    for (int i = 0; i < P; ++i)
     {
         if (i == procId)
         {
@@ -354,9 +439,9 @@ int main(int argc, char* argv[])
 
     /* Perform some looping... ;) */
 
-    for (int whichNode{0}; whichNode < P; ++whichNode)  // Over nodes
+    for (int whichNode = 0; whichNode < P; ++whichNode)  // Over nodes
     {
-        for (ull whichParticle{0}; whichParticle < generated_by_node[whichNode]; ++whichParticle)  // Over particles
+        for (ull whichParticle = 0; whichParticle < generated_by_node[whichNode]; ++whichParticle)  // Over particles
         {
             // Compute assignee node
             real_t currentX = genPosMatX[whichNode].at(whichParticle);
@@ -380,8 +465,8 @@ int main(int argc, char* argv[])
     // Now we have what we wanted and unused std::vectors are automatically deleted through smart pointers! ;)
 
     // For the sake of practicality...
-    ull particles_of_node[P];                           // Requires C >= 99
-    for (int whichNode{0}; whichNode < P; ++whichNode)  // Over nodes
+    ull particles_of_node[P];                            // Requires C >= 99
+    for (int whichNode = 0; whichNode < P; ++whichNode)  // Over nodes
     {
         particles_of_node[whichNode] = LocalPositionsX[whichNode].size();
     }
@@ -408,7 +493,7 @@ int main(int argc, char* argv[])
     // In each node, only before first iteration...
     auto LocalTriParticles = new TriPart[particles_of_node[procId]];
 
-    for (ull thisParticle{0}; thisParticle < particles_of_node[procId]; ++thisParticle)
+    for (ull thisParticle = 0; thisParticle < particles_of_node[procId]; ++thisParticle)
     {
         // For each particle this node needs to evolve...
         LocalTriParticles[thisParticle].m(singlemass);
@@ -425,6 +510,7 @@ int main(int argc, char* argv[])
     // e.g. velocities not in TriParticles.
 
 
+    real_t simulation_time = 0.0;
     for (int iteration{0}; iteration <= Niter + 1; ++iteration)
     {
         /* Now we fully unroll the first dynamical iteration... */
@@ -492,7 +578,7 @@ int main(int argc, char* argv[])
         }
 
         // Compute ENERGIES OF PREVIOUS ITERATION!
-        for (ull thisParticle{0}; thisParticle < particles_of_node[procId]; ++thisParticle)
+        for (ull thisParticle = 0; thisParticle < particles_of_node[procId]; ++thisParticle)
         {
             LocalTriParticles[thisParticle].E(LocalTriParticles[thisParticle].Ekin()
                                               + LocalPotentialEnergy_of[thisParticle]);
@@ -500,9 +586,81 @@ int main(int argc, char* argv[])
 
         ////////////////////////////////////////////////////////////////////////////////////////////////
         // HERE WE HAVE ALL THE DATA WE NEED FOR PREVIOUS ITERATION! //
-        // AND FREE: LocalForces actin on // LocalPotentialEnergies
-        // delete[] LocalForces_acting_on;
-        // delete[] LocalPotentialEnergy_of;
+
+        if (write_a_checkpoint && iteration != 0)  // We already wrote the conditions for iteration = -1 (i.e. the IC)
+        {  // Also: NEVER simplfy the expression: write_a_checkpoint CAN BE constexpr!
+            ///
+
+            // Ordinary IO management
+            myFileName = std::to_string(procId);           // We will call files with the (unique) procId
+            myFileName.append("_ECP");                     // ECP = Evolution CheckPoint
+            myFileId = open(myFileName.c_str(),            // DO NOT USE NON-CONST METHODS ON myFileName FROM NOW ON!
+                            O_WRONLY | O_CREAT | O_TRUNC,  // Overwrite previous (but not if _IC)
+                            0644);                         // Change mode if needed by whatever reason
+
+            /* Prepare & Dump data */
+
+            // Precision of floats -> sizeof(<whatever has type real_t>)
+            writethis_realt = 0;
+            writethis = static_cast<int>(sizeof(writethis_realt));
+            write(myFileId, &writethis, sizeof(writethis));
+
+            // Particles in the file
+            writethis = static_cast<int>(particles_of_node[procId]);
+            write(myFileId, &writethis, sizeof(writethis));
+
+            // The total number of files
+            writethis = static_cast<int>(P);
+            write(myFileId, &writethis, sizeof(writethis));
+
+            // Time
+            writethis_double = simulation_time;
+            write(myFileId, &writethis_double, sizeof(writethis_double));
+
+            // Positions and velocities + Energy
+            for (ull particle_being_written{0}; particle_being_written < particles_of_node[procId]; ++particle_being_written)
+            {
+                // X
+                writethis_realt = LocalTriParticles[particle_being_written].x();
+                write(myFileId, &writethis_realt, sizeof(writethis_double));
+
+                // Y
+                writethis_realt = LocalTriParticles[particle_being_written].y();
+                write(myFileId, &writethis_realt, sizeof(writethis_double));
+
+                // Z
+                writethis_realt = LocalTriParticles[particle_being_written].z();
+                write(myFileId, &writethis_realt, sizeof(writethis_double));
+
+                // vX
+                writethis_realt = LocalTriParticles[particle_being_written].vx();
+                write(myFileId, &writethis_realt, sizeof(writethis_double));
+
+                // vY
+                writethis_realt = LocalTriParticles[particle_being_written].vy();
+                write(myFileId, &writethis_realt, sizeof(writethis_double));
+                // vX
+                writethis_realt = LocalTriParticles[particle_being_written].vz();
+                write(myFileId, &writethis_realt, sizeof(writethis_double));
+
+                // Energies (kin)
+                writethis_realt = LocalTriParticles[particle_being_written].E();
+                write(myFileId, &writethis_realt, sizeof(writethis_double));
+            }
+
+
+            // Close what we opened
+            close(myFileId);
+        }
+
+        // IF EXITING
+        if (iteration == Niter+1)
+        {
+            delete[] LocalForces_acting_on;
+            delete[] LocalPotentialEnergy_of;
+            MPI_Finalize();
+            return 0;
+        }
         ////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -514,7 +672,7 @@ int main(int argc, char* argv[])
         real_t new_timestep = veleps / global_maxmodulus;
 
         // Execute the dynamic step on all particles...
-        for (ull thisParticle{0}; thisParticle < particles_of_node[procId]; ++thisParticle)
+        for (ull thisParticle = 0; thisParticle < particles_of_node[procId]; ++thisParticle)
         {
             LocalTriParticles[thisParticle].stepForce_CBBC(LocalForces_acting_on[thisParticle], new_timestep,
                                                            1.0);  // Box BC
@@ -540,7 +698,7 @@ int main(int argc, char* argv[])
         auto updatedYpos = new real_t[particles_of_node[procId]];
         auto updatedZpos = new real_t[particles_of_node[procId]];
 
-        for (ull particle{0}; particle < particles_of_node[procId]; ++particle)
+        for (ull particle = 0; particle < particles_of_node[procId]; ++particle)
         {
             updatedXpos[particle] = LocalTriParticles[particle].x();
             updatedYpos[particle] = LocalTriParticles[particle].y();
@@ -592,17 +750,13 @@ int main(int argc, char* argv[])
         delete[] updatedXpos;
         delete[] updatedYpos;
         // delete[] updatedZpos;    // Has already been deleted by `delete[] mpibuffer` and some STL magic ;)
+
+        // Update time (which will only be needed at next iteration for dumping to file)
+        simulation_time += new_timestep;
     }
 
 
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
-
-
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
-
-
+    // The following two lines should never execute, if the program is used correctly!
     MPI_Finalize();
     return 0;
 }
