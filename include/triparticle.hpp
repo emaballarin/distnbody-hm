@@ -27,11 +27,12 @@
  * INCLUDES *
  ************/
 
-#include <cassert>        // Diagnostics
-#include "precision.hpp"  // Handling of real numbers
-#include "utilityfx.hpp"  // Utility functions
-#include "trivector.hpp"  // 3D vectors
 #include "physics.hpp"    // Physical evolution
+#include "precision.hpp"  // Handling of real numbers
+#include "trivector.hpp"  // 3D vectors
+#include "utilityfx.hpp"  // Utility functions
+
+#include <cassert>  // Diagnostics
 
 /******************************************************************************
  ******************************************************************************/
@@ -42,7 +43,6 @@
 class TriPart
 {
     public:
-
     /********
     * CTORS *
     *********/
@@ -53,7 +53,7 @@ class TriPart
 
     inline explicit TriPart(real_t _m) : position{}, velocity{}, energy{}, mass(_m)
     {
-        assert(_m > 0); // Mass must be positive
+        assert(_m > 0);  // Mass must be positive
     }
 
     inline TriPart(TriVec _pos, real_t _m) : position(_pos), velocity{}, energy{}, mass(_m)
@@ -66,7 +66,7 @@ class TriPart
         assert(_m > 0);  // Mass must be positive
     }
 
-    // NOTE: Eneegy initialization MUST be done manually after allocation! (otw: E=0)
+    // NOTE: Energy initialization MUST be done manually after allocation! (otw: E=0)
 
     /***********
      * GETTERS *
@@ -134,7 +134,7 @@ class TriPart
         position.z = _pos.z;
     }
 
-    inline void pos(real_t _pos[3]) // Do not const-ify!
+    inline void pos(real_t _pos[3])  // Do not const-ify!
     {
         /* Do not assign null pointer dereferences */
         assert(_pos != nullptr);
@@ -207,57 +207,57 @@ class TriPart
         mass = _mass;
     }
 
-   /**************
+    /**************
     * MEMBER FXS *
     **************/
 
     inline real_t Ekin() const
-   {
-        return (mass*dot(velocity, velocity))/2;
-   }
+    {
+        return (mass * dot(velocity, velocity)) / 2;
+    }
 
-   // Impose box boundary conditions for position, in-place
-   inline void boxBC(real_t boxx, real_t boxy, real_t boxz)
-   {
-       assert(boxx >= 0);
-       assert(boxy >= 0);
-       assert(boxz >= 0);
+    // Impose box boundary conditions for position, in-place
+    inline void boxBC(real_t boxx, real_t boxy, real_t boxz)
+    {
+        assert(boxx >= 0);
+        assert(boxy >= 0);
+        assert(boxz >= 0);
 
-       position.x = rangeloop<long int>(position.x, boxx);
-       position.y = rangeloop<long int>(position.y, boxy);
-       position.z = rangeloop<long int>(position.z, boxz);
-   }
+        position.x = rangeloop<long int>(position.x, boxx);
+        position.y = rangeloop<long int>(position.y, boxy);
+        position.z = rangeloop<long int>(position.z, boxz);
+    }
 
-   // Impose CUBIC box boundary conditions for position, in-place
-   inline void boxBC_cubic(real_t boxside)
-   {
-       assert(boxside >= 0);
+    // Impose CUBIC box boundary conditions for position, in-place
+    inline void boxBC_cubic(real_t boxside)
+    {
+        assert(boxside >= 0);
 
-       position.x = rangeloop<long int>(position.x, boxside);
-       position.y = rangeloop<long int>(position.y, boxside);
-       position.z = rangeloop<long int>(position.z, boxside);
-   }
+        position.x = rangeloop<long int>(position.x, boxside);
+        position.y = rangeloop<long int>(position.y, boxside);
+        position.z = rangeloop<long int>(position.z, boxside);
+    }
 
-   /* Physical evolutors */
+    /* Physical evolutors */
 
-   inline void stepForce(TriVec _force, real_t _timestep)
-   {
-       TriVec _newvel = NewVel(velocity, accel_from_Fm(_force, mass), _timestep);
-       velocity.x = _newvel.x;
-       velocity.y = _newvel.y;
-       velocity.z = _newvel.z;
+    inline void stepForce(TriVec _force, real_t _timestep)
+    {
+        TriVec _newvel = NewVel(velocity, accel_from_Fm(_force, mass), _timestep);
+        velocity.x = _newvel.x;
+        velocity.y = _newvel.y;
+        velocity.z = _newvel.z;
 
-       TriVec _newpos = NewPos(position, _newvel, _timestep);
-       position.x = _newpos.x;
-       position.y = _newpos.y;
-       position.z = _newpos.z;
-   }
+        TriVec _newpos = NewPos(position, _newvel, _timestep);
+        position.x = _newpos.x;
+        position.y = _newpos.y;
+        position.z = _newpos.z;
+    }
 
-   inline void stepForce_CBBC(TriVec _force, real_t _timestep, real_t _boxside)
-   {
-       this->stepForce(_force, _timestep);
-       this->boxBC_cubic(_boxside);
-   }
+    inline void stepForce_CBBC(TriVec _force, real_t _timestep, real_t _boxside)
+    {
+        this->stepForce(_force, _timestep);
+        this->boxBC_cubic(_boxside);
+    }
 
     private:
     TriVec position;

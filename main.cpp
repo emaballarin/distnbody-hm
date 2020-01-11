@@ -32,10 +32,10 @@
  * GLOBAL INCLUDES *
  *******************/
 
-#include <algorithm>  // STL algorithms on iterables (arrays, vectors)
-#include <mpi.h>      // MPI parallelism
-//#include <omp.h>        // OpenMP parallelism
+#include <algorithm>    // STL algorithms on iterables (arrays, vectors)
 #include <fcntl.h>      // File manipulations (POSIX)
+#include <mpi.h>        // MPI parallelism
+#include <omp.h>        // OpenMP parallelism
 #include <string>       // STL strings for filenames
 #include <sys/stat.h>   // File manipulations (POSIX)
 #include <sys/types.h>  // File manipulations (POSIX)
@@ -89,12 +89,12 @@ int main(int argc, char* argv[])
 
     /* Define global, problem-specific constants */
     constexpr real_t GlobalMass = 100;
-    constexpr ull Nparticles = 100;  // Change this if required!
+    constexpr ull Nparticles = 2000;  // Change this if required!
     constexpr bool write_a_checkpoint{true};
 
     /* Compute global, problem-specific constants */
     constexpr real_t singlemass = GlobalMass / Nparticles;
-    constexpr int Niter = 2;
+    constexpr int Niter = 6;
 
     /* Define required MPI variables */
     int procId;
@@ -138,6 +138,7 @@ int main(int argc, char* argv[])
     auto genZpos = new real_t[particles_to_gen];
     auto genZvel = new real_t[particles_to_gen];
 
+    //#pragma omp parallel for
     for (ull i = 0; i < particles_to_gen; ++i)
     {
         genXpos[i] = drand48();  // Already in the [0, 1) range!
@@ -182,7 +183,8 @@ int main(int argc, char* argv[])
     // Ooops, we need energies for that (kinetic only, fortunately!)
     auto Ekin_forIC = new real_t[particles_to_gen];
 
-    for (ull particle_being_written{0}; particle_being_written < particles_to_gen; ++particle_being_written)
+#pragma omp parallel for
+    for (ull particle_being_written = 0; particle_being_written < particles_to_gen; ++particle_being_written)
     {
         Ekin_forIC[particle_being_written] = singlemass
                                              * (genXvel[particle_being_written] * genXvel[particle_being_written]
@@ -273,6 +275,7 @@ int main(int argc, char* argv[])
 
     ull generated_by_node[P];  // Requires C >= 99
 
+#pragma omp parallel for
     for (int i = 0; i < P; ++i)
     {
         if (i == procId)
@@ -300,6 +303,7 @@ int main(int argc, char* argv[])
     std::vector<std::vector<real_t>> genVelMatY(P);
     std::vector<std::vector<real_t>> genVelMatZ(P);
 
+#pragma omp parallel for
     for (int i = 0; i < P; i++)
     {
         genPosMatX[i].resize(generated_by_node[i]);
@@ -430,6 +434,7 @@ int main(int argc, char* argv[])
     std::vector<real_t> LocalVelocitiesZ(0);
 
     // Don't abuse with position memory either...
+#pragma omp parallel for
     for (int i = 0; i < P; i++)
     {
         LocalPositionsX[i].resize(0);
@@ -439,8 +444,10 @@ int main(int argc, char* argv[])
 
     /* Perform some looping... ;) */
 
+    //#pragma omp parallel for
     for (int whichNode = 0; whichNode < P; ++whichNode)  // Over nodes
     {
+        //#pragma omp parallel for
         for (ull whichParticle = 0; whichParticle < generated_by_node[whichNode]; ++whichParticle)  // Over particles
         {
             // Compute assignee node
@@ -465,7 +472,8 @@ int main(int argc, char* argv[])
     // Now we have what we wanted and unused std::vectors are automatically deleted through smart pointers! ;)
 
     // For the sake of practicality...
-    ull particles_of_node[P];                            // Requires C >= 99
+    ull particles_of_node[P];  // Requires C >= 99
+#pragma omp parallel for
     for (int whichNode = 0; whichNode < P; ++whichNode)  // Over nodes
     {
         particles_of_node[whichNode] = LocalPositionsX[whichNode].size();
@@ -493,6 +501,7 @@ int main(int argc, char* argv[])
     // In each node, only before first iteration...
     auto LocalTriParticles = new TriPart[particles_of_node[procId]];
 
+#pragma omp parallel for
     for (ull thisParticle = 0; thisParticle < particles_of_node[procId]; ++thisParticle)
     {
         // For each particle this node needs to evolve...
@@ -513,10 +522,6 @@ int main(int argc, char* argv[])
     real_t simulation_time = 0.0;
     for (int iteration{0}; iteration <= Niter + 1; ++iteration)
     {
-        /* Now we fully unroll the first dynamical iteration... */
-
-        // REMEMBER TO FREE MEMORY!
-
         // This will be required to keep track of the forces acting on particles
         auto LocalForces_acting_on = new TriVec[particles_of_node[procId]];
 
@@ -527,15 +532,15 @@ int main(int argc, char* argv[])
         real_t maxmodulus{0.0};
 
         // For each particle assigned to the node...
-        for (ull thisParticle{0}; thisParticle < particles_of_node[procId]; ++thisParticle)
+        for (ull thisParticle = 0; thisParticle < particles_of_node[procId]; ++thisParticle)
         {
             TriVec ForceOn_thisParticle{0, 0, 0};  // The to-be force acting on such particle
             real_t EnergyOf_thisParticle = 0.0;
 
             // For each particle in the system (from the local position matrix)...
-            for (int whichNode{0}; whichNode < P; ++whichNode)
+            for (int whichNode = 0; whichNode < P; ++whichNode)
             {
-                for (ull whichParticle{0}; whichParticle < particles_of_node[whichNode]; ++whichParticle)
+                for (ull whichParticle = 0; whichParticle < particles_of_node[whichNode]; ++whichParticle)
                 {
                     TriVec deltaForce = {0, 0, 0};
                     real_t deltaEnergy = 0;
@@ -577,7 +582,8 @@ int main(int argc, char* argv[])
             }
         }
 
-        // Compute ENERGIES OF PREVIOUS ITERATION!
+// Compute ENERGIES OF PREVIOUS ITERATION!
+#pragma omp parallel for
         for (ull thisParticle = 0; thisParticle < particles_of_node[procId]; ++thisParticle)
         {
             LocalTriParticles[thisParticle].E(LocalTriParticles[thisParticle].Ekin()
@@ -618,7 +624,8 @@ int main(int argc, char* argv[])
             write(myFileId, &writethis_double, sizeof(writethis_double));
 
             // Positions and velocities + Energy
-            for (ull particle_being_written{0}; particle_being_written < particles_of_node[procId]; ++particle_being_written)
+            for (ull particle_being_written{0}; particle_being_written < particles_of_node[procId];
+                 ++particle_being_written)
             {
                 // X
                 writethis_realt = LocalTriParticles[particle_being_written].x();
@@ -654,7 +661,7 @@ int main(int argc, char* argv[])
         }
 
         // IF EXITING
-        if (iteration == Niter+1)
+        if (iteration == Niter + 1)
         {
             delete[] LocalForces_acting_on;
             delete[] LocalPotentialEnergy_of;
@@ -671,7 +678,8 @@ int main(int argc, char* argv[])
         // Compute new timestep (max timestep)
         real_t new_timestep = veleps / global_maxmodulus;
 
-        // Execute the dynamic step on all particles...
+// Execute the dynamic step on all particles...
+#pragma omp parallel for
         for (ull thisParticle = 0; thisParticle < particles_of_node[procId]; ++thisParticle)
         {
             LocalTriParticles[thisParticle].stepForce_CBBC(LocalForces_acting_on[thisParticle], new_timestep,
@@ -698,6 +706,7 @@ int main(int argc, char* argv[])
         auto updatedYpos = new real_t[particles_of_node[procId]];
         auto updatedZpos = new real_t[particles_of_node[procId]];
 
+#pragma omp parallel for
         for (ull particle = 0; particle < particles_of_node[procId]; ++particle)
         {
             updatedXpos[particle] = LocalTriParticles[particle].x();
