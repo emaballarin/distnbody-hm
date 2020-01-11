@@ -89,12 +89,12 @@ int main(int argc, char* argv[])
 
     /* Define global, problem-specific constants */
     constexpr real_t GlobalMass = 100;
-    constexpr ull Nparticles = 2000;  // Change this if required!
+    constexpr ull Nparticles = 3000;  // Change this if required!
     constexpr bool write_a_checkpoint{true};
 
     /* Compute global, problem-specific constants */
     constexpr real_t singlemass = GlobalMass / Nparticles;
-    constexpr int Niter = 6;
+    constexpr int Niter = 10;
 
     /* Define required MPI variables */
     int procId;
@@ -532,6 +532,7 @@ int main(int argc, char* argv[])
         real_t maxmodulus{0.0};
 
         // For each particle assigned to the node...
+#pragma omp parallel for
         for (ull thisParticle = 0; thisParticle < particles_of_node[procId]; ++thisParticle)
         {
             TriVec ForceOn_thisParticle{0, 0, 0};  // The to-be force acting on such particle
@@ -575,11 +576,14 @@ int main(int argc, char* argv[])
             real_t candidate_maxmodulus =
               singlemass * (mod(ForceOn_thisParticle) / mod(LocalTriParticles[thisParticle].vel()));
 
-            // Update global max modulus if needed
-            if (candidate_maxmodulus > maxmodulus)
-            {
-                maxmodulus = candidate_maxmodulus;
-            }
+// Update global max modulus if needed
+#pragma omp critical
+            {  // PRAGMA
+                if (candidate_maxmodulus > maxmodulus)
+                {
+                    maxmodulus = candidate_maxmodulus;
+                }
+            }  //PRAGMA
         }
 
 // Compute ENERGIES OF PREVIOUS ITERATION!
