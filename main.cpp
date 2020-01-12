@@ -20,6 +20,8 @@
  *                                                                             *
  * ─────────────────────────────────────────────────────────────────────────── */
 
+// COMPILE LINE (g++ >= 6 base; OpenMPI >= 2):
+// mpic++ -Ofast -flto -fassociative-math -fexpensive-optimizations -ffast-math -fivopts -flra-remat -fmove-loop-invariants -fpeel-loops -freciprocal-math -fsched2-use-superblocks -fsel-sched-pipelining -funroll-all-loops -funroll-loops -funsafe-math-optimizations -fwhole-program -march=native ../main.cpp -I ../include -o test.x -fopenmp
 
 /******************
  * GLOBAL PRAGMAS *
